@@ -2,18 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "apps/api/dist/index.js",
+      "src": "apps/api/index.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "apps/api/dist/index.js"
+      "dest": "apps/api/index.ts"
     },
     {
       "src": "/health",
-      "dest": "apps/api/dist/index.js"
+      "dest": "apps/api/index.ts"
     }
   ]
 }

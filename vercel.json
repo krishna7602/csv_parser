@@ -1,5 +1,27 @@
 {
-  "buildCommand": "pnpm --filter @groweasy/shared build && pnpm --filter web build",
-  "installCommand": "pnpm install",
-  "framework": "nextjs"
+  "version": 2,
+  "builds": [
+    {
+      "src": "apps/api/index.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "apps/web/package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "apps/api/index.ts"
+    },
+    {
+      "src": "/health",
+      "dest": "apps/api/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "apps/web/package.json"
+    }
+  ]
 }
