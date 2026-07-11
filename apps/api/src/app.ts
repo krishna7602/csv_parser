@@ -11,7 +11,7 @@ export const app: Express = express();
 // ─── Middleware ────────────────────────────────────────────────────────────────
 app.use(
   cors({
-    origin: env.FRONTEND_URL,
+    origin: "*",
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
