@@ -1,0 +1,39 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN npm install -g pnpm@9
+
+# ── Dependencies ───────────────────────────────────────────────────────────────
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json ./apps/api/
+RUN pnpm install --frozen-lockfile --filter api... 2>/dev/null || pnpm install --filter api...
+
+# ── Build shared ───────────────────────────────────────────────────────────────
+FROM deps AS build-shared
+COPY packages/shared ./packages/shared
+RUN pnpm --filter @groweasy/shared build
+
+# ── Build API ─────────────────────────────────────────────────────────────────
+FROM build-shared AS build-api
+COPY apps/api ./apps/api
+RUN pnpm --filter api build
+
+# ── Production image ──────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+WORKDIR /app
+RUN npm install -g pnpm@9
+
+COPY package.json pnpm-workspace.yaml ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/api/package.json ./apps/api/
+
+RUN pnpm install --prod --filter api... 2>/dev/null || pnpm install --prod --filter api...
+
+COPY --from=build-shared /app/packages/shared/dist ./packages/shared/dist
+COPY --from=build-api /app/apps/api/dist ./apps/api/dist
+
+EXPOSE 3001
+ENV NODE_ENV=production
+
+CMD ["node", "apps/api/dist/server.js"]

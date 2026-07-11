@@ -1,0 +1,47 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: groweasy-api
+    container_name: groweasy-api
+    ports:
+      - "3001:3001"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - PORT=3001
+      - BATCH_SIZE=${BATCH_SIZE:-20}
+      - BATCH_CONCURRENCY=${BATCH_CONCURRENCY:-3}
+      - MAX_UPLOAD_MB=${MAX_UPLOAD_MB:-5}
+      - NODE_ENV=production
+      - FRONTEND_URL=http://localhost:3000
+    networks:
+      - groweasy-net
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:3001
+    image: groweasy-web
+    container_name: groweasy-web
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - groweasy-net
+    restart: unless-stopped
+
+networks:
+  groweasy-net:
+    driver: bridge

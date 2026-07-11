@@ -1,0 +1,34 @@
+FROM node:20-alpine AS base
+WORKDIR /app
+RUN npm install -g pnpm@9
+
+# ── Dependencies ───────────────────────────────────────────────────────────────
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml ./
+COPY packages/shared/package.json ./packages/shared/
+COPY apps/web/package.json ./apps/web/
+RUN pnpm install --frozen-lockfile --filter web... 2>/dev/null || pnpm install --filter web...
+
+# ── Build shared ───────────────────────────────────────────────────────────────
+FROM deps AS build-shared
+COPY packages/shared ./packages/shared
+RUN pnpm --filter @groweasy/shared build
+
+# ── Build Next.js ─────────────────────────────────────────────────────────────
+FROM build-shared AS build-web
+COPY apps/web ./apps/web
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN pnpm --filter web build
+
+# ── Production image ──────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=build-web /app/apps/web/.next/standalone ./
+COPY --from=build-web /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build-web /app/apps/web/public ./apps/web/public
+
+EXPOSE 3000
+CMD ["node", "apps/web/server.js"]
